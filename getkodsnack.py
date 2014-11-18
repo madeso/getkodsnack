@@ -12,6 +12,8 @@ def sanefilename(filename):
 	return filename
 
 def dlfile(url, localfilename, date, title, num):
+	ttt = title[len("kodsnack %d - ".format(num)):]
+	
     # Open the url
 	try:
 		print "DL " + url + " to " + localfilename
@@ -26,7 +28,7 @@ def dlfile(url, localfilename, date, title, num):
 			audiofile.tag.artist = u"Kodsnack"
 			audiofile.tag.album = u"kodsnack.se"
 			audiofile.tag.album_artist = u""
-			audiofile.tag.title = title
+			audiofile.tag.title = ttt
 			audiofile.tag.genre = u'Speech' # or vocal, podcast isn't supported
 			audiofile.tag.date = date
 			audiofile.tag.year = date
