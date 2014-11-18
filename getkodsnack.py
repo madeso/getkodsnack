@@ -6,6 +6,9 @@ import eyed3
 # http://eyed3.nicfit.net/
 # pip install eyeD3 --allow-external eyed3 --allow-unverified eyed3
 
+# upgrade to mutagen...
+# https://mutagen.readthedocs.org/en/latest/tutorial.html
+
 def sanefilename(filename):
 	for c in r'[]/\;,><&*:%=+@!#^()|?^':
 		filename = filename.replace(c,'')
