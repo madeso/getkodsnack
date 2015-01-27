@@ -2,12 +2,18 @@
 import re
 import os
 import os.path
-import eyed3
-# http://eyed3.nicfit.net/
-# pip install eyeD3 --allow-external eyed3 --allow-unverified eyed3
 
-# upgrade to mutagen...
 # https://mutagen.readthedocs.org/en/latest/tutorial.html
+from mutagen.easyid3 import EasyID3
+
+#print EasyID3.valid_keys.keys()
+	# ['albumartistsort', 'musicbrainz_albumstatus', 'lyricist', 'musicbrainz_workid', 'releasecountry', 'date', 'performer',
+	# 'musicbrainz_albumartistid', 'composer', 'catalognumber', 'encodedby', 'tracknumber', 'musicbrainz_albumid', 'album',
+	# 'asin', 'musicbrainz_artistid', 'mood', 'copyright', 'author', 'media', 'length', 'acoustid_fingerprint', 'version',
+	# 'artistsort', 'titlesort', 'discsubtitle', 'website', 'musicip_fingerprint', 'conductor', 'musicbrainz_releasegroupid',
+	# 'compilation', 'barcode', 'performer:*', 'composersort', 'musicbrainz_discid', 'musicbrainz_albumtype', 'genre', 'isrc',
+	# 'discnumber', 'musicbrainz_trmid', 'acoustid_id', 'replaygain_*_gain', 'musicip_puid', 'originaldate', 'language', 'artist',
+	# 'title', 'bpm', 'musicbrainz_trackid', 'arranger', 'albumsort', 'replaygain_*_peak', 'organization', 'musicbrainz_releasetrackid']
 
 def sanefilename(filename):
 	for c in r'[]/\;,><&*:%=+@!#^()|?^':
@@ -25,21 +31,23 @@ def dlfile(url, localfilename, date, title, num):
 			f = urllib2.urlopen(url)
 			with open(localfilename, "wb") as local_file:
 				local_file.write(f.read())
-			audiofile = eyed3.load(localfilename)
+			audiofile = EasyID3(localfilename)
 			
 			# http://www.richardfarrar.com/what-id3-tags-should-you-use-in-a-podcast/
-			audiofile.tag.artist = u"Kodsnack"
-			audiofile.tag.album = u"kodsnack.se"
-			audiofile.tag.album_artist = u""
-			audiofile.tag.title = ttt
-			audiofile.tag.genre = u'Speech' # or vocal, podcast isn't supported
-			audiofile.tag.date = date
-			audiofile.tag.year = date
-			audiofile.tag.www = u'www.kodsnack.se'
-			audiofile.tag.release_date = date
-			audiofile.tag.track_num = num
+			
+			audiofile.delete() # start fresh for consitency
+			audiofile["artist"] = u"Kodsnack"
+			audiofile["album"] = u"kodsnack.se"
+			audiofile["titlesort"] = title # = Kodsnack 12 - Here comes the title
+			audiofile["title"] = ttt # = Here comes the title
+			audiofile["releasecountry"] = u'Sweden'
+			audiofile["genre"] = u'Speech' # or vocal, podcast isn't supported
+			audiofile["date"] = date
+			audiofile["originaldate"] = date
+			audiofile["website"] = u'www.kodsnack.se'
+			audiofile["tracknumber"] = str(num)
 
-			audiofile.tag.save()
+			audiofile.save()
 	#handle errors
 	except urllib2.HTTPError, e:
 		print "HTTP Error:", e.code, url
