@@ -6,6 +6,8 @@ import os.path
 # https://mutagen.readthedocs.org/en/latest/tutorial.html
 from mutagen.easyid3 import EasyID3
 
+import HTMLParser
+
 #print EasyID3.valid_keys.keys()
 	# ['albumartistsort', 'musicbrainz_albumstatus', 'lyricist', 'musicbrainz_workid', 'releasecountry', 'date', 'performer',
 	# 'musicbrainz_albumartistid', 'composer', 'catalognumber', 'encodedby', 'tracknumber', 'musicbrainz_albumid', 'album',
@@ -56,6 +58,7 @@ def dlfile(url, localfilename, date, title, num):
 
 
 def main():
+	htmlparser = HTMLParser.HTMLParser()
 	avsnitts = urllib2.urlopen('http://kodsnack.se/avsnitt/').read()
 	for mo in re.findall('<li><span class="post-list"><time>(.*)</time> <a href="(.*)">', avsnitts):
 		req = urllib2.urlopen(mo[1])
@@ -93,8 +96,10 @@ def main():
 				dodownload = False
 		if dodownload:
 			episodenum = int(episodere.group(1))
+			episodetitle = unicode(title.group(1), 'CP1252')
+			episodetitle = htmlparser.unescape(episodetitle)
 			# we should change to the same extension that the source has, someday...
-			dlfile(download.group(1), sanefilename(title.group(1))+ ".mp3", unicode(mo[0], 'CP1252'), unicode(title.group(1), 'CP1252'), episodenum)
+			dlfile(download.group(1), sanefilename(episodetitle)+ ".mp3", unicode(mo[0], 'CP1252'), episodetitle, episodenum)
 
 if __name__ == '__main__':
 	main()
