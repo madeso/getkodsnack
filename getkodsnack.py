@@ -7,6 +7,8 @@ import os
 import os.path
 import html
 import argparse
+import itertools
+import collections
 from bs4 import BeautifulSoup
 
 
@@ -167,6 +169,55 @@ def handle_titles(args):
         print()
 
 
+# source: https://github.com/peterdalle/svensktext
+SWEDISH_STOP_WORDS = [
+        'aderton', 'adertonde', 'adjö', 'aldrig', 'all', 'alla', 'allas', 'allt', 'alltid', 'alltså', 'andra', 'andras', 'annan', 'annat', 'artonde', 'artonn', 'att', 'av', 'bakom', 'bara', 'behöva',
+        'behövas', 'behövde', 'behövt', 'beslut', 'beslutat', 'beslutit', 'bland', 'blev', 'bli', 'blir', 'blivit', 'borde', 'bort', 'borta', 'bra', 'bäst', 'bättre', 'båda', 'bådas', 'både',
+        'dag', 'dagar', 'dagarna', 'dagen', 'de', 'del', 'delen', 'dem', 'den', 'denna', 'deras', 'dess', 'dessa', 'det', 'detta', 'dig', 'din', 'dina', 'dit', 'ditt',
+        'dock', 'dom', 'du', 'där', 'därför', 'då', 'efter', 'eftersom', 'elfte', 'eller', 'elva', 'en', 'enkel', 'enkelt', 'enkla', 'enligt', 'er', 'era', 'ert', 'ett',
+        'ettusen', 'fall', 'fanns', 'fast', 'fem', 'femte', 'femtio', 'femtionde', 'femton', 'femtonde', 'fick', 'fin', 'finnas', 'finns', 'fjorton', 'fjortonde', 'fjärde', 'fler', 'flera', 'flesta',
+        'fram', 'framför', 'från', 'fyra', 'fyrtio', 'fyrtionde', 'få', 'får', 'fått', 'följande', 'för', 'före', 'förlåt', 'förra', 'första', 'ge', 'genast', 'genom', 'ger', 'gick',
+        'gjorde', 'gjort', 'god', 'goda', 'godare', 'godast', 'gott', 'gälla', 'gäller', 'gällt', 'gärna', 'gå', 'gång', 'går', 'gått', 'gör', 'göra', 'ha', 'hade', 'haft',
+        'han', 'hans', 'har', 'hela', 'heller', 'hellre', 'helst', 'helt', 'henne', 'hennes', 'heter', 'hit', 'hjälp', 'hon', 'honom', 'hundra', 'hundraen', 'hundraett', 'hur', 'här',
+        'hög', 'höger', 'högre', 'högst', 'i', 'ibland', 'idag', 'igen', 'igår', 'imorgon', 'in', 'inför', 'inga', 'ingen', 'ingenting', 'inget', 'innan', 'inne', 'inom', 'inte',
+        'inuti', 'ja', 'jag', 'jämfört', 'kan', 'kanske', 'knappast', 'kolla', 'kom', 'komma', 'kommer', 'kommit', 'kr', 'kunde', 'kunna', 'kunnat', 'kvar', 'kör', 'legat', 'ligga',
+        'ligger', 'lika', 'likställd', 'likställda', 'lilla', 'lite', 'liten', 'litet', 'lägga', 'länge', 'längre', 'längst', 'lätt', 'lättare', 'lättast', 'långsam', 'långsammare', 'långsammast', 'långsamt', 'långt',
+        'man', 'med', 'mellan', 'men', 'menar', 'mer', 'mera', 'mest', 'mig', 'min', 'mina', 'mindre', 'minst', 'mitt', 'mittemot', 'mot', 'mycket', 'många', 'måste', 'möjlig',
+        'möjligen', 'möjligt', 'möjligtvis', 'ned', 'nederst', 'nedersta', 'nedre', 'nej', 'ner', 'ni', 'nio', 'nionde', 'nittio', 'nittionde', 'nitton', 'nittonde', 'nog', 'noll', 'nr', 'nu',
+        'nummer', 'när', 'nästa', 'någon', 'någonting', 'något', 'några', 'nån', 'nåt', 'nödvändig', 'nödvändiga', 'nödvändigt', 'nödvändigtvis', 'och', 'också', 'ofta', 'oftast', 'olika', 'olikt', 'om',
+        'oss', 'på', 'rakt', 'redan', 'rätt', 'sade', 'sagt', 'samma', 'samt', 'sedan', 'sen', 'senare', 'senast', 'sent', 'sex', 'sextio', 'sextionde', 'sexton', 'sextonde', 'sig',
+        'sin', 'sina', 'sist', 'sista', 'siste', 'sitt', 'sju', 'sjunde', 'sjuttio', 'sjuttionde', 'sjutton', 'sjuttonde', 'själv', 'sjätte', 'ska', 'skall', 'skulle', 'slutligen', 'små', 'smått',
+        'snart', 'som', 'stor', 'stora', 'stort', 'står', 'större', 'störst', 'säga', 'säger', 'sämre', 'sämst', 'sätt', 'så', 'ta', 'tack', 'tar', 'tidig', 'tidigare', 'tidigast',
+        'tidigt', 'till', 'tills', 'tillsammans', 'tio', 'tionde', 'tjugo', 'tjugoen', 'tjugoett', 'tjugonde', 'tjugotre', 'tjugotvå', 'tjungo', 'tolfte', 'tolv', 'tre', 'tredje', 'trettio', 'trettionde', 'tretton',
+        'trettonde', 'tro', 'tror', 'två', 'tvåhundra', 'under', 'upp', 'ur', 'ursäkt', 'ut', 'utan', 'utanför', 'ute', 'vad', 'var', 'vara', 'varför', 'varifrån', 'varit', 'varje',
+        'varken', 'varsågod', 'vart', 'vem', 'vems', 'verkligen', 'vet', 'vi', 'vid', 'vidare', 'viktig', 'viktigare', 'viktigast', 'viktigt', 'vilka', 'vilken', 'vilket', 'vill', 'visst', 'väl',
+        'vänster', 'vänstra', 'värre', 'vår', 'våra', 'vårt', 'än', 'ändå', 'ännu', 'är', 'även', 'åtminstone', 'åtta', 'åttio', 'åttionde', 'åttonde', 'över', 'övermorgon', 'överst', 'övre',
+        'nya', 'procent', 'ser', 'skriver', 'tog', 'året'
+    ]
+STOP_WORDS = list(
+            itertools.chain(SWEDISH_STOP_WORDS, ['kodsnack', 'ju'])
+        )
+
+def handle_stats(args):
+    episodes = list(get_episodes())
+    shortest = min(episodes, key=lambda e: len(e.title))
+    longest = max(episodes, key=lambda e: len(e.title))
+    most_titles = max(episodes, key=lambda e: len(e.titles))
+    fewest_titles = min((e for e in episodes if len(e.titles)>0), key=lambda e: len(e.titles))
+    titles = itertools.chain.from_iterable(itertools.chain([e.title], e.titles) for e in episodes)
+    title_words = itertools.chain.from_iterable(re.findall(r'\w+', title.lower()) for title in titles)
+    top10 = collections.Counter(w for w in title_words if w not in STOP_WORDS).most_common(10)
+
+    print('Shortest: {}'.format(shortest.title))
+    print('Longest: {}'.format(longest.title))
+    print('Most titles: {} with {}'.format(most_titles.title, len(most_titles.titles)))
+    print('Fewest titles: {} with {}'.format(fewest_titles.title, len(fewest_titles.titles)))
+    print('Top 10 words in titles:')
+    for t in top10:
+        print('  {} with {}'.format(t[0], t[1]))
+    print()
+
+
 def main():
     parser = argparse.ArgumentParser(description='download and probe tool for kodsnack episodes')
     sub_parsers = parser.add_subparsers(dest='command_name', title='Commands', help='', metavar='<command>')
@@ -182,6 +233,9 @@ def main():
 
     sub = sub_parsers.add_parser('titles', help='')
     sub.set_defaults(func=handle_titles)
+
+    sub = sub_parsers.add_parser('stats', help='')
+    sub.set_defaults(func=handle_stats)
 
     args = parser.parse_args()
     if args.command_name is not None:
