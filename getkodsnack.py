@@ -148,14 +148,23 @@ def get_episodes():
         episode_soup = BeautifulSoup(request_url(episode_url, extract_number_from_url(episode_url)), 'html.parser')
 
         # default properties
-        episode_number = -1
+        episode_number = ''
         episode_title = ''
+        episode_sort = ''
         download_file = ''
         episode_titles = []
 
         title_result = episode_soup.find('h1', class_='post-title')
         if title_result != None:
             episode_title = title_result.string.strip()
+            episode_sort = episode_title
+            episode_number_result = re.search('[Kk]odsnack ([0-9]+(\.[0-9]+)?)', episode_title)
+            if episode_number_result != None:
+                rest = episode_title[episode_number_result.end():].strip().lstrip('-').strip()
+                episode_title = rest
+                episode_number = episode_number_result.group(1)
+
+
 
         download_result = episode_soup.find('span', class_='post-download')
         if download_result != None:
@@ -174,14 +183,9 @@ def get_episodes():
                         alt_title = li.string
                         if alt_title != None:
                             alt_title = alt_title.strip()
-                            episode_titles.append(alt_title)
+                            if alt_title != episode_title:
+                                episode_titles.append(alt_title)
         
-        episode_number_result = re.search('[Kk]odsnack ([0-9]+)', episode_title)
-        if episode_number_result == None:
-            print("Unable to parse episode num")
-            episode_parse_ok = False
-            episode_number = int(episode_number_result.group(1))
-
         yield Episode(download_file, episode_date, episode_title, episode_number, episode_titles)
 
 
