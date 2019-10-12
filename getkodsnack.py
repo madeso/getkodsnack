@@ -5,22 +5,14 @@ import urllib.error
 import re
 import os
 import os.path
-
 import html
 
-#print EasyID3.valid_keys.keys()
-    # ['albumartistsort', 'musicbrainz_albumstatus', 'lyricist', 'musicbrainz_workid', 'releasecountry', 'date', 'performer',
-    # 'musicbrainz_albumartistid', 'composer', 'catalognumber', 'encodedby', 'tracknumber', 'musicbrainz_albumid', 'album',
-    # 'asin', 'musicbrainz_artistid', 'mood', 'copyright', 'author', 'media', 'length', 'acoustid_fingerprint', 'version',
-    # 'artistsort', 'titlesort', 'discsubtitle', 'website', 'musicip_fingerprint', 'conductor', 'musicbrainz_releasegroupid',
-    # 'compilation', 'barcode', 'performer:*', 'composersort', 'musicbrainz_discid', 'musicbrainz_albumtype', 'genre', 'isrc',
-    # 'discnumber', 'musicbrainz_trmid', 'acoustid_id', 'replaygain_*_gain', 'musicip_puid', 'originaldate', 'language', 'artist',
-    # 'title', 'bpm', 'musicbrainz_trackid', 'arranger', 'albumsort', 'replaygain_*_peak', 'organization', 'musicbrainz_releasetrackid']
 
 def sanefilename(filename):
     for c in r'[]/\;,><&*:%=+@!#^()|?^':
         filename = filename.replace(c,'')
     return filename
+
 
 def dlfile(url, localfilename, date, title, num, download_file, fix_id3):
     ttt = title[len("kodsnack %d - ".format(num)):]
@@ -65,6 +57,7 @@ def dlfile(url, localfilename, date, title, num, download_file, fix_id3):
 def bytetostr(b):
     return b.decode('utf-8')
 
+
 def main():
     download_file = False
     fix_id3 = False
@@ -104,5 +97,7 @@ def main():
             # we should change to the same extension that the source has, someday...
             dlfile(download.group(1), sanefilename(episodetitle)+ ".mp3", mo[0], episodetitle, episodenum, download_file, fix_id3)
 
+
 if __name__ == '__main__':
     main()
+
