@@ -248,12 +248,13 @@ def handle_ls(args):
 
 
 def handle_titles(args):
-    for episode in get_episodes():
-        if language_filer(episode, args.language):
-            print(episode.title)
-            for t in episode.titles:
-                print(t)
-            print()
+    all_episodes = (e for e in get_episodes() if language_filter(e, args.language))
+    episodes = all_episodes if args.all else itertools.islice(all_episodes, 5)
+    for episode in episodes:
+        print(episode.title)
+        for t in episode.titles:
+            print(t)
+        print()
 
 
 def handle_stats(args):
@@ -305,6 +306,7 @@ def main():
 
     sub = sub_parsers.add_parser('titles', help='List all titles, including alternate titles')
     sub.add_argument('--language', help='only show this language')
+    sub.add_argument('--all', action='store_true', help='download all files')
     sub.set_defaults(func=handle_titles)
 
     sub = sub_parsers.add_parser('stats', help='Print some funny stats')
