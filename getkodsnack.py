@@ -100,7 +100,7 @@ def get_episodes():
         episode_date = episode_post.time.string
         episode_url = episode_post.a['href']
 
-        episode_content = request_url(episode_url, extract_number_from_url(episode_url))
+        episode_soup = BeautifulSoup(request_url(episode_url, extract_number_from_url(episode_url)), 'html.parser')
 
         # default properties
         episode_number = -1
@@ -108,14 +108,14 @@ def get_episodes():
         download_file = ''
 
         #  <h1 class="post-title">Kodsnack 74 - Resten av livet med dina handleder</h1>
-        title_result = re.search('<h1 class="post-title">(.*)</h1>', episode_content)
+        title_result = episode_soup.find('h1', class_='post-title')
         if title_result != None:
-            episode_title = html.unescape(title_result.group(1))
+            episode_title = title_result.string
 
         # <span class="post-download"><a href="http://traffic.libsyn.com/kodsnack/24_oktober.mp3">Ladda ner (mp3)</a></span>
-        download = re.search('<span class="post-download"><a href="(.*)">', episode_content)
-        if download != None:
-            download_file = download.group(1)
+        download_result = episode_soup.find('span', class_='post-download')
+        if download_result != None:
+            download_file = download_result.a['href']
         
         episode_number_result = re.search('[Kk]odsnack ([0-9]+)', episode_title)
         if episode_number_result == None:
