@@ -54,13 +54,14 @@ STOP_WORDS = list(
 
 
 class Episode:
-    def __init__(self, url, date, title, num, titles, sort):
+    def __init__(self, url, date, title, num, titles, sort, lang):
         self.url = url
         self.date = date
         self.title = title
         self.number = num
         self.sort = sort
         self.titles = titles
+        self.language = lang
 
 
 ##############################################################################
@@ -151,6 +152,7 @@ def get_episodes():
         episode_title = ''
         episode_sort = ''
         download_file = ''
+        episode_language = 'swedish'
         episode_titles = []
 
         title_result = episode_soup.find('h1', class_='post-title')
@@ -169,6 +171,11 @@ def get_episodes():
         if download_result != None:
             download_file = download_result.a['href']
 
+        # hacky detection, but seems to work
+        # it's weird that they change the id on english posts, but that is great for us
+        if episode_soup.find('h2', id='titles') != None:
+            episode_language = 'english'
+
         for titles_id in ['titlar', 'titles']:
             titles_result = episode_soup.find('h2', id=titles_id)
             if titles_result != None:
@@ -185,13 +192,18 @@ def get_episodes():
                             if alt_title != episode_title:
                                 episode_titles.append(alt_title)
         
-        yield Episode(download_file, episode_date, episode_title, episode_number, episode_titles, episode_sort)
+        yield Episode(download_file, episode_date, episode_title, episode_number, episode_titles, episode_sort, episode_language)
 
 
 def title_words_from_episodes(episodes):
     titles = itertools.chain.from_iterable(itertools.chain([e.title], e.titles) for e in episodes)
     title_words = itertools.chain.from_iterable(re.findall(r'\w+', title.lower()) for title in titles)
     return (w for w in title_words if not w.isdigit())
+
+
+def print_top(top10):
+    for t in top10:
+        print('  {} with {}'.format(t[0], t[1]))
 
 
 ##############################################################################
@@ -237,14 +249,17 @@ def handle_stats(args):
     fewest_titles = min((e for e in episodes if len(e.titles)>0), key=lambda e: len(e.titles))
     title_words = title_words_from_episodes(episodes)
     top10 = collections.Counter(w for w in title_words if w not in STOP_WORDS).most_common(10)
+    languages = collections.Counter(e.language for e in episodes).most_common(10)
 
     print('Shortest: {}'.format(shortest.title))
     print('Longest: {}'.format(longest.title))
     print('Most titles: {} with {}'.format(most_titles.title, len(most_titles.titles)))
     print('Fewest titles: {} with {}'.format(fewest_titles.title, len(fewest_titles.titles)))
-    print('Top 10 words in titles:')
-    for t in top10:
-        print('  {} with {}'.format(t[0], t[1]))
+    print('Top words in titles:')
+    print_top(top10)
+    print()
+    print('Top languages:')
+    print_top(languages)
     print()
 
 
