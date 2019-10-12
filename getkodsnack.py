@@ -6,6 +6,7 @@ import re
 import os
 import os.path
 import html
+import argparse
 
 
 def sanefilename(filename):
@@ -72,6 +73,7 @@ def request_url(url, name):
     os.makedirs(cache_folder, exist_ok=True)
     cache = os.path.join(cache_folder, name+'.html')
     if os.path.isfile(cache):
+        # todo(Gustav): ignore cache if it's older than 'some time'
         with open(cache, 'r') as f:
             return f.read()
     else:
@@ -81,10 +83,15 @@ def request_url(url, name):
         return content
 
 
-def main():
-    download_file = False
-    fix_id3 = False
+class Episode:
+    def __init__(self, url, date, title, num):
+        self.url = url
+        self.date = date
+        self.title = title
+        self.num = num
 
+
+def get_episodes():
     episodes_content = request_url('https://kodsnack.se/avsnitt/', 'episodes')
     for episode_href in re.findall('<li><span class="post-list"><time>(.*)</time> <a href="(.*)">', episodes_content):
         episode_content = request_url(episode_href[1], extract_number_from_url(episode_href[1]))
@@ -113,8 +120,44 @@ def main():
                 episode_parse_ok = False
         if episode_parse_ok:
             episodenum = int(episode_number_result.group(1))
-            # we should change to the same extension that the source has, someday...
-            dlfile(download.group(1), sanefilename(episode_title)+ ".mp3", episode_href[0], episode_title, episodenum, download_file, fix_id3)
+            yield Episode(download.group(1), episode_href[0], episode_title, episodenum)
+
+
+def handle_download(args):
+    download_file = args.download
+    fix_id3 = args.fix_id3
+    for episode in get_episodes():
+        # we should change to the same extension that the source has, someday...
+        dlfile(episode.url, sanefilename(episode.title)+ ".mp3", episode.date, episode.title, episode.num, download_file, fix_id3)
+
+
+def handle_ls(args):
+    for episode in get_episodes():
+        if args.print:
+            print(episode.title)
+
+
+def main():
+    parser = argparse.ArgumentParser(description='download and probe tool for kodsnack episodes')
+    sub_parsers = parser.add_subparsers(dest='command_name', title='Commands', help='', metavar='<command>')
+
+    sub = sub_parsers.add_parser('download', help='')
+    sub.add_argument('--no-download', dest='download', action='store_false', help="don't download the episodes")
+    sub.add_argument('--no-fix', dest='fix_id3', action='store_false', help="don't fix the id3 tags")
+    sub.set_defaults(func=handle_download)
+
+    sub = sub_parsers.add_parser('ls', help='')
+    sub.add_argument('--quiet', dest='print', action='store_false', help="don't print anything")
+    sub.set_defaults(func=handle_ls)
+
+    # sub = sub_parsers.add_parser('ls', help='')
+    # sub.set_defaults(func=handle_)
+
+    args = parser.parse_args()
+    if args.command_name is not None:
+        args.func(args)
+    else:
+        parser.print_help()
 
 
 if __name__ == '__main__':
