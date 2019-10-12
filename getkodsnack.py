@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+##############################################################################
+## Imports
+
 import urllib.request
 import urllib.error
 import re
@@ -11,6 +14,56 @@ import itertools
 import collections
 from bs4 import BeautifulSoup
 
+
+##############################################################################
+## Constants
+
+# source: https://github.com/peterdalle/svensktext
+SWEDISH_STOP_WORDS = [
+        'aderton', 'adertonde', 'adjö', 'aldrig', 'all', 'alla', 'allas', 'allt', 'alltid', 'alltså', 'andra', 'andras', 'annan', 'annat', 'artonde', 'artonn', 'att', 'av', 'bakom', 'bara', 'behöva',
+        'behövas', 'behövde', 'behövt', 'beslut', 'beslutat', 'beslutit', 'bland', 'blev', 'bli', 'blir', 'blivit', 'borde', 'bort', 'borta', 'bra', 'bäst', 'bättre', 'båda', 'bådas', 'både',
+        'dag', 'dagar', 'dagarna', 'dagen', 'de', 'del', 'delen', 'dem', 'den', 'denna', 'deras', 'dess', 'dessa', 'det', 'detta', 'dig', 'din', 'dina', 'dit', 'ditt',
+        'dock', 'dom', 'du', 'där', 'därför', 'då', 'efter', 'eftersom', 'elfte', 'eller', 'elva', 'en', 'enkel', 'enkelt', 'enkla', 'enligt', 'er', 'era', 'ert', 'ett',
+        'ettusen', 'fall', 'fanns', 'fast', 'fem', 'femte', 'femtio', 'femtionde', 'femton', 'femtonde', 'fick', 'fin', 'finnas', 'finns', 'fjorton', 'fjortonde', 'fjärde', 'fler', 'flera', 'flesta',
+        'fram', 'framför', 'från', 'fyra', 'fyrtio', 'fyrtionde', 'få', 'får', 'fått', 'följande', 'för', 'före', 'förlåt', 'förra', 'första', 'ge', 'genast', 'genom', 'ger', 'gick',
+        'gjorde', 'gjort', 'god', 'goda', 'godare', 'godast', 'gott', 'gälla', 'gäller', 'gällt', 'gärna', 'gå', 'gång', 'går', 'gått', 'gör', 'göra', 'ha', 'hade', 'haft',
+        'han', 'hans', 'har', 'hela', 'heller', 'hellre', 'helst', 'helt', 'henne', 'hennes', 'heter', 'hit', 'hjälp', 'hon', 'honom', 'hundra', 'hundraen', 'hundraett', 'hur', 'här',
+        'hög', 'höger', 'högre', 'högst', 'i', 'ibland', 'idag', 'igen', 'igår', 'imorgon', 'in', 'inför', 'inga', 'ingen', 'ingenting', 'inget', 'innan', 'inne', 'inom', 'inte',
+        'inuti', 'ja', 'jag', 'jämfört', 'kan', 'kanske', 'knappast', 'kolla', 'kom', 'komma', 'kommer', 'kommit', 'kr', 'kunde', 'kunna', 'kunnat', 'kvar', 'kör', 'legat', 'ligga',
+        'ligger', 'lika', 'likställd', 'likställda', 'lilla', 'lite', 'liten', 'litet', 'lägga', 'länge', 'längre', 'längst', 'lätt', 'lättare', 'lättast', 'långsam', 'långsammare', 'långsammast', 'långsamt', 'långt',
+        'man', 'med', 'mellan', 'men', 'menar', 'mer', 'mera', 'mest', 'mig', 'min', 'mina', 'mindre', 'minst', 'mitt', 'mittemot', 'mot', 'mycket', 'många', 'måste', 'möjlig',
+        'möjligen', 'möjligt', 'möjligtvis', 'ned', 'nederst', 'nedersta', 'nedre', 'nej', 'ner', 'ni', 'nio', 'nionde', 'nittio', 'nittionde', 'nitton', 'nittonde', 'nog', 'noll', 'nr', 'nu',
+        'nummer', 'när', 'nästa', 'någon', 'någonting', 'något', 'några', 'nån', 'nåt', 'nödvändig', 'nödvändiga', 'nödvändigt', 'nödvändigtvis', 'och', 'också', 'ofta', 'oftast', 'olika', 'olikt', 'om',
+        'oss', 'på', 'rakt', 'redan', 'rätt', 'sade', 'sagt', 'samma', 'samt', 'sedan', 'sen', 'senare', 'senast', 'sent', 'sex', 'sextio', 'sextionde', 'sexton', 'sextonde', 'sig',
+        'sin', 'sina', 'sist', 'sista', 'siste', 'sitt', 'sju', 'sjunde', 'sjuttio', 'sjuttionde', 'sjutton', 'sjuttonde', 'själv', 'sjätte', 'ska', 'skall', 'skulle', 'slutligen', 'små', 'smått',
+        'snart', 'som', 'stor', 'stora', 'stort', 'står', 'större', 'störst', 'säga', 'säger', 'sämre', 'sämst', 'sätt', 'så', 'ta', 'tack', 'tar', 'tidig', 'tidigare', 'tidigast',
+        'tidigt', 'till', 'tills', 'tillsammans', 'tio', 'tionde', 'tjugo', 'tjugoen', 'tjugoett', 'tjugonde', 'tjugotre', 'tjugotvå', 'tjungo', 'tolfte', 'tolv', 'tre', 'tredje', 'trettio', 'trettionde', 'tretton',
+        'trettonde', 'tro', 'tror', 'två', 'tvåhundra', 'under', 'upp', 'ur', 'ursäkt', 'ut', 'utan', 'utanför', 'ute', 'vad', 'var', 'vara', 'varför', 'varifrån', 'varit', 'varje',
+        'varken', 'varsågod', 'vart', 'vem', 'vems', 'verkligen', 'vet', 'vi', 'vid', 'vidare', 'viktig', 'viktigare', 'viktigast', 'viktigt', 'vilka', 'vilken', 'vilket', 'vill', 'visst', 'väl',
+        'vänster', 'vänstra', 'värre', 'vår', 'våra', 'vårt', 'än', 'ändå', 'ännu', 'är', 'även', 'åtminstone', 'åtta', 'åttio', 'åttionde', 'åttonde', 'över', 'övermorgon', 'överst', 'övre',
+        'nya', 'procent', 'ser', 'skriver', 'tog', 'året'
+    ]
+
+STOP_WORDS = list(
+            itertools.chain(SWEDISH_STOP_WORDS, ['kodsnack', 'ju'])
+        )
+
+
+##############################################################################
+## Structs
+
+
+class Episode:
+    def __init__(self, url, date, title, num, titles):
+        self.url = url
+        self.date = date
+        self.title = title
+        self.num = num
+        self.titles = titles
+
+
+##############################################################################
+## Functions
 
 def sanefilename(filename):
     for c in r'[]/\;,><&*:%=+@!#^()|?^':
@@ -86,22 +139,12 @@ def request_url(url, name):
         return content
 
 
-class Episode:
-    def __init__(self, url, date, title, num, titles):
-        self.url = url
-        self.date = date
-        self.title = title
-        self.num = num
-        self.titles = titles
-
-
 def get_episodes():
     episodes_soup = BeautifulSoup(request_url('https://kodsnack.se/avsnitt/', 'episodes'), 'html.parser')
     episodes_post_list = episodes_soup.find_all('span', class_='post-list')
     for episode_post in episodes_post_list:
         episode_date = episode_post.time.string
         episode_url = episode_post.a['href']
-
         episode_soup = BeautifulSoup(request_url(episode_url, extract_number_from_url(episode_url)), 'html.parser')
 
         # default properties
@@ -110,12 +153,10 @@ def get_episodes():
         download_file = ''
         episode_titles = []
 
-        #  <h1 class="post-title">Kodsnack 74 - Resten av livet med dina handleder</h1>
         title_result = episode_soup.find('h1', class_='post-title')
         if title_result != None:
             episode_title = title_result.string.strip()
 
-        # <span class="post-download"><a href="http://traffic.libsyn.com/kodsnack/24_oktober.mp3">Ladda ner (mp3)</a></span>
         download_result = episode_soup.find('span', class_='post-download')
         if download_result != None:
             download_file = download_result.a['href']
@@ -143,6 +184,15 @@ def get_episodes():
         yield Episode(download_file, episode_date, episode_title, episode_number, episode_titles)
 
 
+def title_words_from_episodes(episodes):
+    titles = itertools.chain.from_iterable(itertools.chain([e.title], e.titles) for e in episodes)
+    title_words = itertools.chain.from_iterable(re.findall(r'\w+', title.lower()) for title in titles)
+    return (w for w in title_words if not w.isdigit())
+
+
+##############################################################################
+## Commandline functions
+
 def handle_download(args):
     download_file = args.download
     fix_id3 = args.fix_id3
@@ -165,44 +215,7 @@ def handle_titles(args):
         print(episode.title)
         for t in episode.titles:
             print(t)
-
         print()
-
-
-# source: https://github.com/peterdalle/svensktext
-SWEDISH_STOP_WORDS = [
-        'aderton', 'adertonde', 'adjö', 'aldrig', 'all', 'alla', 'allas', 'allt', 'alltid', 'alltså', 'andra', 'andras', 'annan', 'annat', 'artonde', 'artonn', 'att', 'av', 'bakom', 'bara', 'behöva',
-        'behövas', 'behövde', 'behövt', 'beslut', 'beslutat', 'beslutit', 'bland', 'blev', 'bli', 'blir', 'blivit', 'borde', 'bort', 'borta', 'bra', 'bäst', 'bättre', 'båda', 'bådas', 'både',
-        'dag', 'dagar', 'dagarna', 'dagen', 'de', 'del', 'delen', 'dem', 'den', 'denna', 'deras', 'dess', 'dessa', 'det', 'detta', 'dig', 'din', 'dina', 'dit', 'ditt',
-        'dock', 'dom', 'du', 'där', 'därför', 'då', 'efter', 'eftersom', 'elfte', 'eller', 'elva', 'en', 'enkel', 'enkelt', 'enkla', 'enligt', 'er', 'era', 'ert', 'ett',
-        'ettusen', 'fall', 'fanns', 'fast', 'fem', 'femte', 'femtio', 'femtionde', 'femton', 'femtonde', 'fick', 'fin', 'finnas', 'finns', 'fjorton', 'fjortonde', 'fjärde', 'fler', 'flera', 'flesta',
-        'fram', 'framför', 'från', 'fyra', 'fyrtio', 'fyrtionde', 'få', 'får', 'fått', 'följande', 'för', 'före', 'förlåt', 'förra', 'första', 'ge', 'genast', 'genom', 'ger', 'gick',
-        'gjorde', 'gjort', 'god', 'goda', 'godare', 'godast', 'gott', 'gälla', 'gäller', 'gällt', 'gärna', 'gå', 'gång', 'går', 'gått', 'gör', 'göra', 'ha', 'hade', 'haft',
-        'han', 'hans', 'har', 'hela', 'heller', 'hellre', 'helst', 'helt', 'henne', 'hennes', 'heter', 'hit', 'hjälp', 'hon', 'honom', 'hundra', 'hundraen', 'hundraett', 'hur', 'här',
-        'hög', 'höger', 'högre', 'högst', 'i', 'ibland', 'idag', 'igen', 'igår', 'imorgon', 'in', 'inför', 'inga', 'ingen', 'ingenting', 'inget', 'innan', 'inne', 'inom', 'inte',
-        'inuti', 'ja', 'jag', 'jämfört', 'kan', 'kanske', 'knappast', 'kolla', 'kom', 'komma', 'kommer', 'kommit', 'kr', 'kunde', 'kunna', 'kunnat', 'kvar', 'kör', 'legat', 'ligga',
-        'ligger', 'lika', 'likställd', 'likställda', 'lilla', 'lite', 'liten', 'litet', 'lägga', 'länge', 'längre', 'längst', 'lätt', 'lättare', 'lättast', 'långsam', 'långsammare', 'långsammast', 'långsamt', 'långt',
-        'man', 'med', 'mellan', 'men', 'menar', 'mer', 'mera', 'mest', 'mig', 'min', 'mina', 'mindre', 'minst', 'mitt', 'mittemot', 'mot', 'mycket', 'många', 'måste', 'möjlig',
-        'möjligen', 'möjligt', 'möjligtvis', 'ned', 'nederst', 'nedersta', 'nedre', 'nej', 'ner', 'ni', 'nio', 'nionde', 'nittio', 'nittionde', 'nitton', 'nittonde', 'nog', 'noll', 'nr', 'nu',
-        'nummer', 'när', 'nästa', 'någon', 'någonting', 'något', 'några', 'nån', 'nåt', 'nödvändig', 'nödvändiga', 'nödvändigt', 'nödvändigtvis', 'och', 'också', 'ofta', 'oftast', 'olika', 'olikt', 'om',
-        'oss', 'på', 'rakt', 'redan', 'rätt', 'sade', 'sagt', 'samma', 'samt', 'sedan', 'sen', 'senare', 'senast', 'sent', 'sex', 'sextio', 'sextionde', 'sexton', 'sextonde', 'sig',
-        'sin', 'sina', 'sist', 'sista', 'siste', 'sitt', 'sju', 'sjunde', 'sjuttio', 'sjuttionde', 'sjutton', 'sjuttonde', 'själv', 'sjätte', 'ska', 'skall', 'skulle', 'slutligen', 'små', 'smått',
-        'snart', 'som', 'stor', 'stora', 'stort', 'står', 'större', 'störst', 'säga', 'säger', 'sämre', 'sämst', 'sätt', 'så', 'ta', 'tack', 'tar', 'tidig', 'tidigare', 'tidigast',
-        'tidigt', 'till', 'tills', 'tillsammans', 'tio', 'tionde', 'tjugo', 'tjugoen', 'tjugoett', 'tjugonde', 'tjugotre', 'tjugotvå', 'tjungo', 'tolfte', 'tolv', 'tre', 'tredje', 'trettio', 'trettionde', 'tretton',
-        'trettonde', 'tro', 'tror', 'två', 'tvåhundra', 'under', 'upp', 'ur', 'ursäkt', 'ut', 'utan', 'utanför', 'ute', 'vad', 'var', 'vara', 'varför', 'varifrån', 'varit', 'varje',
-        'varken', 'varsågod', 'vart', 'vem', 'vems', 'verkligen', 'vet', 'vi', 'vid', 'vidare', 'viktig', 'viktigare', 'viktigast', 'viktigt', 'vilka', 'vilken', 'vilket', 'vill', 'visst', 'väl',
-        'vänster', 'vänstra', 'värre', 'vår', 'våra', 'vårt', 'än', 'ändå', 'ännu', 'är', 'även', 'åtminstone', 'åtta', 'åttio', 'åttionde', 'åttonde', 'över', 'övermorgon', 'överst', 'övre',
-        'nya', 'procent', 'ser', 'skriver', 'tog', 'året'
-    ]
-STOP_WORDS = list(
-            itertools.chain(SWEDISH_STOP_WORDS, ['kodsnack', 'ju'])
-        )
-
-
-def title_words_from_episodes(episodes):
-    titles = itertools.chain.from_iterable(itertools.chain([e.title], e.titles) for e in episodes)
-    title_words = itertools.chain.from_iterable(re.findall(r'\w+', title.lower()) for title in titles)
-    return (w for w in title_words if not w.isdigit())
 
 
 def handle_stats(args):
@@ -232,6 +245,9 @@ def handle_words(args):
     for w in wordlist:
         print(w)
 
+
+##############################################################################
+## Main
 
 def main():
     parser = argparse.ArgumentParser(description='download and probe tool for kodsnack episodes')
@@ -263,6 +279,9 @@ def main():
     else:
         parser.print_help()
 
+
+##############################################################################
+## Entry point
 
 if __name__ == '__main__':
     main()
