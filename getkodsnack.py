@@ -45,7 +45,7 @@ SWEDISH_STOP_WORDS = [
     ]
 
 STOP_WORDS = list(
-            itertools.chain(SWEDISH_STOP_WORDS, ['kodsnack', 'ju'])
+            itertools.chain(SWEDISH_STOP_WORDS, ['the', 'a', 'of', 'to', 'it', 'and', 'ju'])
         )
 
 
@@ -203,7 +203,7 @@ def title_words_from_episodes(episodes):
 
 def print_top(top10):
     for t in top10:
-        print('  {} with {}'.format(t[0], t[1]))
+        print('  {} ({})'.format(t[0], t[1]))
 
 
 ##############################################################################
