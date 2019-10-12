@@ -44,8 +44,11 @@ SWEDISH_STOP_WORDS = [
         'nya', 'procent', 'ser', 'skriver', 'tog', 'året'
     ]
 
+# source: https://gist.github.com/sebleier/554280
+ENGLISH_STOP_WORDS = ["i", "me", "my", "myself", "we", "our", "ours", "ourselves", "you", "your", "yours", "yourself", "yourselves", "he", "him", "his", "himself", "she", "her", "hers", "herself", "it", "its", "itself", "they", "them", "their", "theirs", "themselves", "what", "which", "who", "whom", "this", "that", "these", "those", "am", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "having", "do", "does", "did", "doing", "a", "an", "the", "and", "but", "if", "or", "because", "as", "until", "while", "of", "at", "by", "for", "with", "about", "against", "between", "into", "through", "during", "before", "after", "above", "below", "to", "from", "up", "down", "in", "out", "on", "off", "over", "under", "again", "further", "then", "once", "here", "there", "when", "where", "why", "how", "all", "any", "both", "each", "few", "more", "most", "other", "some", "such", "no", "nor", "not", "only", "own", "same", "so", "than", "too", "very", "s", "t", "can", "will", "just", "don", "should", "now"]
+
 STOP_WORDS = list(
-            itertools.chain(SWEDISH_STOP_WORDS, ['the', 'a', 'of', 'to', 'it', 'and', 'ju'])
+            itertools.chain(SWEDISH_STOP_WORDS, ENGLISH_STOP_WORDS, ['re', 'm', 'ju'])
         )
 
 
@@ -195,8 +198,14 @@ def get_episodes():
         yield Episode(download_file, episode_date, episode_title, episode_number, episode_titles, episode_sort, episode_language)
 
 
-def title_words_from_episodes(episodes):
-    titles = itertools.chain.from_iterable(itertools.chain([e.title], e.titles) for e in episodes)
+def language_filter(episode, language):
+    if language == None:
+        return True
+    return language == episode.language
+
+
+def title_words_from_episodes(episodes, language):
+    titles = itertools.chain.from_iterable(itertools.chain([e.title], e.titles) for e in episodes if language_filter(e, language))
     title_words = itertools.chain.from_iterable(re.findall(r'\w+', title.lower()) for title in titles)
     return (w for w in title_words if not w.isdigit())
 
@@ -204,6 +213,11 @@ def title_words_from_episodes(episodes):
 def print_top(top10):
     for t in top10:
         print('  {} ({})'.format(t[0], t[1]))
+
+
+def get_top(episodes, language):
+    title_words = title_words_from_episodes(episodes, language)
+    return collections.Counter(w for w in title_words if w not in STOP_WORDS)
 
 
 ##############################################################################
@@ -235,10 +249,11 @@ def handle_ls(args):
 
 def handle_titles(args):
     for episode in get_episodes():
-        print(episode.title)
-        for t in episode.titles:
-            print(t)
-        print()
+        if language_filer(episode, args.language):
+            print(episode.title)
+            for t in episode.titles:
+                print(t)
+            print()
 
 
 def handle_stats(args):
@@ -247,24 +262,23 @@ def handle_stats(args):
     longest = max(episodes, key=lambda e: len(e.title))
     most_titles = max(episodes, key=lambda e: len(e.titles))
     fewest_titles = min((e for e in episodes if len(e.titles)>0), key=lambda e: len(e.titles))
-    title_words = title_words_from_episodes(episodes)
-    top10 = collections.Counter(w for w in title_words if w not in STOP_WORDS).most_common(10)
     languages = collections.Counter(e.language for e in episodes).most_common(10)
 
     print('Shortest: {}'.format(shortest.title))
     print('Longest: {}'.format(longest.title))
     print('Most titles: {} with {}'.format(most_titles.title, len(most_titles.titles)))
     print('Fewest titles: {} with {}'.format(fewest_titles.title, len(fewest_titles.titles)))
-    print('Top words in titles:')
-    print_top(top10)
-    print()
+    for lang in ['swedish', 'english']:
+        print('Top words in titles ({}):'.format(lang))
+        top10 = get_top(episodes, lang).most_common(10)
+        print_top(top10)
     print('Top languages:')
     print_top(languages)
     print()
 
 
 def handle_words(args):
-    allwords = title_words_from_episodes(get_episodes())
+    allwords = title_words_from_episodes(get_episodes(), args.language)
     stopwords = STOP_WORDS if args.include_stopwords else []
     words = (w for w in allwords if not w in stopwords)
     wordlist = words if args.all else itertools.islice(words, 20)
@@ -290,6 +304,7 @@ def main():
     sub.set_defaults(func=handle_ls)
 
     sub = sub_parsers.add_parser('titles', help='List all titles, including alternate titles')
+    sub.add_argument('--language', help='only show this language')
     sub.set_defaults(func=handle_titles)
 
     sub = sub_parsers.add_parser('stats', help='Print some funny stats')
@@ -298,6 +313,7 @@ def main():
     sub = sub_parsers.add_parser('words', help='Print all the words in titles, perfect for sending to a wordcloud generator')
     sub.add_argument('--stopwords', dest='include_stopwords', action='store_false', help='also include stopwords')
     sub.add_argument('--all', action='store_true', help='print all words')
+    sub.add_argument('--language', help='only show this language')
     sub.set_defaults(func=handle_words)
 
     args = parser.parse_args()
