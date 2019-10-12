@@ -62,40 +62,39 @@ def main():
     download_file = False
     fix_id3 = False
 
-    avsnitts = bytetostr(urllib.request.urlopen('http://kodsnack.se/avsnitt/').read())
-    for mo in re.findall('<li><span class="post-list"><time>(.*)</time> <a href="(.*)">', avsnitts):
-        req = urllib.request.urlopen(mo[1])
-        encoding=req.headers['content-type'].split('charset=')[-1]
-        content = bytetostr(req.read())
-        webFile = content
-        dodownload = True
+    episodes_content = bytetostr(urllib.request.urlopen('http://kodsnack.se/avsnitt/').read())
+    for episide_href in re.findall('<li><span class="post-list"><time>(.*)</time> <a href="(.*)">', episodes_content):
+        episode_request = urllib.request.urlopen(episide_href[1])
+        encoding = episode_request.headers['content-type'].split('charset=')[-1]
+        episode_content = bytetostr(episode_request.read())
+        episode_parse_ok = True
 
         #  <h1 class="post-title">Kodsnack 74 - Resten av livet med dina handleder</h1>
-        title = re.search('<h1 class="post-title">(.*)</h1>', webFile)
-        if title == None:
+        title_result = re.search('<h1 class="post-title">(.*)</h1>', episode_content)
+        if title_result == None:
             print("Missing title for ", index)
-            dodownload = False
-        #print(title.group(1))
+            episode_parse_ok = False
+        #print(title_result.group(1))
 
         # <span class="post-download"><a href="http://traffic.libsyn.com/kodsnack/24_oktober.mp3">Ladda ner (mp3)</a></span>
-        download = re.search('<span class="post-download"><a href="(.*)">', webFile)
+        download = re.search('<span class="post-download"><a href="(.*)">', episode_content)
         if download == None:
-            print("Missing download for ", title.group(1))
-            dodownload = False
+            print("Missing download for ", title_result.group(1))
+            episode_parse_ok = False
         #print(download.group(1))
         
-        episodere = None
-        if dodownload:
-            episodere = re.search('[Kk]odsnack ([0-9]+)', title.group(1))
-            if episodere == None:
+        episode_number_result = None
+        if episode_parse_ok:
+            episode_number_result = re.search('[Kk]odsnack ([0-9]+)', title_result.group(1))
+            if episode_number_result == None:
                 print("Unable to parse episode num")
-                dodownload = False
-        if dodownload:
-            episodenum = int(episodere.group(1))
-            episodetitle = title.group(1)
+                episode_parse_ok = False
+        if episode_parse_ok:
+            episodenum = int(episode_number_result.group(1))
+            episodetitle = title_result.group(1)
             episodetitle = html.unescape(episodetitle)
             # we should change to the same extension that the source has, someday...
-            dlfile(download.group(1), sanefilename(episodetitle)+ ".mp3", mo[0], episodetitle, episodenum, download_file, fix_id3)
+            dlfile(download.group(1), sanefilename(episodetitle)+ ".mp3", episide_href[0], episodetitle, episodenum, download_file, fix_id3)
 
 
 if __name__ == '__main__':
