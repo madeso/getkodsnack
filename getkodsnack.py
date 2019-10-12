@@ -89,6 +89,7 @@ class Episode:
         self.date = date
         self.title = title
         self.num = num
+        self.alt_titles = []
 
 
 def get_episodes():
@@ -138,6 +139,15 @@ def handle_ls(args):
             print(episode.title)
 
 
+def handle_titles(args):
+    for episode in get_episodes():
+        print(episode.title)
+        for t in episode.alt_titles:
+            print(t)
+
+        print()
+
+
 def main():
     parser = argparse.ArgumentParser(description='download and probe tool for kodsnack episodes')
     sub_parsers = parser.add_subparsers(dest='command_name', title='Commands', help='', metavar='<command>')
@@ -151,8 +161,8 @@ def main():
     sub.add_argument('--quiet', dest='print', action='store_false', help="don't print anything")
     sub.set_defaults(func=handle_ls)
 
-    # sub = sub_parsers.add_parser('ls', help='')
-    # sub.set_defaults(func=handle_)
+    sub = sub_parsers.add_parser('titles', help='')
+    sub.set_defaults(func=handle_titles)
 
     args = parser.parse_args()
     if args.command_name is not None:
