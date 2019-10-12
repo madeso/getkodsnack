@@ -253,22 +253,22 @@ def main():
     parser = argparse.ArgumentParser(description='download and probe tool for kodsnack episodes')
     sub_parsers = parser.add_subparsers(dest='command_name', title='Commands', help='', metavar='<command>')
 
-    sub = sub_parsers.add_parser('download', help='')
+    sub = sub_parsers.add_parser('download', help='Download episode mp3s to your computer')
     sub.add_argument('--no-download', dest='download', action='store_false', help="don't download the episodes")
     sub.add_argument('--no-fix', dest='fix_id3', action='store_false', help="don't fix the id3 tags")
     sub.set_defaults(func=handle_download)
 
-    sub = sub_parsers.add_parser('ls', help='')
+    sub = sub_parsers.add_parser('ls', help='List all episodes')
     sub.add_argument('--quiet', dest='print', action='store_false', help="don't print anything")
     sub.set_defaults(func=handle_ls)
 
-    sub = sub_parsers.add_parser('titles', help='')
+    sub = sub_parsers.add_parser('titles', help='List all titles, including alternate titles')
     sub.set_defaults(func=handle_titles)
 
-    sub = sub_parsers.add_parser('stats', help='')
+    sub = sub_parsers.add_parser('stats', help='Print some funny stats')
     sub.set_defaults(func=handle_stats)
 
-    sub = sub_parsers.add_parser('words', help='')
+    sub = sub_parsers.add_parser('words', help='Print all the words in titles, perfect for sending to a wordcloud generator')
     sub.add_argument('--stopwords', dest='include_stopwords', action='store_false', help='also include stopwords')
     sub.add_argument('--all', action='store_true', help='print all words')
     sub.set_defaults(func=handle_words)
