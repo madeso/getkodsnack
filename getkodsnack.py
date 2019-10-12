@@ -95,32 +95,30 @@ def get_episodes():
     episodes_content = request_url('https://kodsnack.se/avsnitt/', 'episodes')
     for episode_href in re.findall('<li><span class="post-list"><time>(.*)</time> <a href="(.*)">', episodes_content):
         episode_content = request_url(episode_href[1], extract_number_from_url(episode_href[1]))
-        episode_parse_ok = True
+        episode_date = episode_href[0]
+
+        # default properties
+        episode_number = -1
+        episode_title = ''
+        download_file = ''
 
         #  <h1 class="post-title">Kodsnack 74 - Resten av livet med dina handleder</h1>
         title_result = re.search('<h1 class="post-title">(.*)</h1>', episode_content)
-        if title_result == None:
-            print("Missing title for ", index)
-            episode_parse_ok = False
-        episode_title = html.unescape(title_result.group(1))
-        #print(episode_title)
+        if title_result != None:
+            episode_title = html.unescape(title_result.group(1))
 
         # <span class="post-download"><a href="http://traffic.libsyn.com/kodsnack/24_oktober.mp3">Ladda ner (mp3)</a></span>
         download = re.search('<span class="post-download"><a href="(.*)">', episode_content)
-        if download == None:
-            print("Missing download for ", episode_title)
-            episode_parse_ok = False
-        #print(download.group(1))
+        if download != None:
+            download_file = download.group(1)
         
-        episode_number_result = None
-        if episode_parse_ok:
-            episode_number_result = re.search('[Kk]odsnack ([0-9]+)', episode_title)
-            if episode_number_result == None:
-                print("Unable to parse episode num")
-                episode_parse_ok = False
-        if episode_parse_ok:
-            episodenum = int(episode_number_result.group(1))
-            yield Episode(download.group(1), episode_href[0], episode_title, episodenum)
+        episode_number_result = re.search('[Kk]odsnack ([0-9]+)', episode_title)
+        if episode_number_result == None:
+            print("Unable to parse episode num")
+            episode_parse_ok = False
+            episode_number = int(episode_number_result.group(1))
+
+        yield Episode(download_file, episode_date, episode_title, episode_number)
 
 
 def handle_download(args):
@@ -128,7 +126,10 @@ def handle_download(args):
     fix_id3 = args.fix_id3
     for episode in get_episodes():
         # we should change to the same extension that the source has, someday...
-        dlfile(episode.url, sanefilename(episode.title)+ ".mp3", episode.date, episode.title, episode.num, download_file, fix_id3)
+        if episode.url == '':
+            print('Missing download for {}'.format(episode.title))
+        else:
+            dlfile(episode.url, sanefilename(episode.title)+ ".mp3", episode.date, episode.title, episode.num, download_file, fix_id3)
 
 
 def handle_ls(args):
