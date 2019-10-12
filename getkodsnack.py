@@ -54,11 +54,12 @@ STOP_WORDS = list(
 
 
 class Episode:
-    def __init__(self, url, date, title, num, titles):
+    def __init__(self, url, date, title, num, titles, sort):
         self.url = url
         self.date = date
         self.title = title
-        self.num = num
+        self.number = num
+        self.sort = sort
         self.titles = titles
 
 
@@ -186,7 +187,7 @@ def get_episodes():
                             if alt_title != episode_title:
                                 episode_titles.append(alt_title)
         
-        yield Episode(download_file, episode_date, episode_title, episode_number, episode_titles)
+        yield Episode(download_file, episode_date, episode_title, episode_number, episode_titles, episode_sort)
 
 
 def title_words_from_episodes(episodes):
@@ -212,7 +213,7 @@ def handle_download(args):
 def handle_ls(args):
     for episode in get_episodes():
         if args.print:
-            print(episode.title)
+            print('{} - {}'.format(episode.number, episode.title))
 
 
 def handle_titles(args):
