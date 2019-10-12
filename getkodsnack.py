@@ -72,7 +72,7 @@ def sanefilename(filename):
     return filename
 
 
-def fix_id3(localfilename, ttt, date, num):
+def fix_id3_tags(localfilename, title, title_sort, date, num):
     # https://mutagen.readthedocs.org/en/latest/tutorial.html
     from mutagen.easyid3 import EasyID3
     tags = EasyID3(localfilename)
@@ -81,22 +81,20 @@ def fix_id3(localfilename, ttt, date, num):
     tags.delete() # start fresh for consitency
     tags["artist"] = u"Kodsnack"
     tags["album"] = u"kodsnack.se"
-    tags["titlesort"] = title # = Kodsnack 12 - Here comes the title
-    tags["title"] = ttt # = Here comes the title
+    tags["titlesort"] = title_sort # = Kodsnack 12 - Here comes the title
+    tags["title"] = title # = Here comes the title
     tags["releasecountry"] = u'Sweden'
     tags["genre"] = u'Speech' # or vocal, podcast isn't supported
     tags["date"] = date
     tags["originaldate"] = date
     tags["website"] = u'www.kodsnack.se'
-    tags["tracknumber"] = str(num)
+    tags["tracknumber"] = num
 
     tags.save()
 
-def dlfile(url, localfilename, date, title, num, download_file, fix_id3):
-    ttt = title[len("kodsnack %d - ".format(num)):]
-    
+def dlfile(url, localfilename, date, title, title_sort, number, download_file, fix_id3):
     try:
-        print("DL " + url + " to " + localfilename)
+        print("Downloading " + url + " to " + localfilename)
         
         if os.path.isfile(localfilename) == False:
             if download_file:
@@ -104,8 +102,8 @@ def dlfile(url, localfilename, date, title, num, download_file, fix_id3):
                 with open(localfilename, "wb") as local_file:
                     local_file.write(f.read())
 
-            if download_file and fix_id3:
-                fix_id3(localfilename, ttt, date, num)
+        if os.path.isfile(localfilename) and fix_id3:
+            fix_id3_tags(localfilename, title, title_sort, date, number)
     # display errors
     except urllib.error.HTTPError as e:
         print("HTTP Error:", e.code, url)
@@ -207,7 +205,7 @@ def handle_download(args):
         if episode.url == '':
             print('Missing download for {}'.format(episode.title))
         else:
-            dlfile(episode.url, sanefilename(episode.title)+ ".mp3", episode.date, episode.title, episode.num, download_file, fix_id3)
+            dlfile(episode.url, sanefilename(episode.title)+ ".mp3", episode.date, episode.title, episode.sort, episode.number, download_file, fix_id3)
 
 
 def handle_ls(args):
