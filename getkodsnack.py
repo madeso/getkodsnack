@@ -7,6 +7,7 @@ import os
 import os.path
 import html
 import argparse
+from bs4 import BeautifulSoup
 
 
 def sanefilename(filename):
@@ -93,10 +94,13 @@ class Episode:
 
 
 def get_episodes():
-    episodes_content = request_url('https://kodsnack.se/avsnitt/', 'episodes')
-    for episode_href in re.findall('<li><span class="post-list"><time>(.*)</time> <a href="(.*)">', episodes_content):
-        episode_content = request_url(episode_href[1], extract_number_from_url(episode_href[1]))
-        episode_date = episode_href[0]
+    episodes_soup = BeautifulSoup(request_url('https://kodsnack.se/avsnitt/', 'episodes'), 'html.parser')
+    episodes_post_list = episodes_soup.find_all('span', class_='post-list')
+    for episode_post in episodes_post_list:
+        episode_date = episode_post.time.string
+        episode_url = episode_post.a['href']
+
+        episode_content = request_url(episode_url, extract_number_from_url(episode_url))
 
         # default properties
         episode_number = -1
