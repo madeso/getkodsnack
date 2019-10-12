@@ -265,10 +265,10 @@ def handle_stats(args):
     fewest_titles = min((e for e in episodes if len(e.titles)>0), key=lambda e: len(e.titles))
     languages = collections.Counter(e.language for e in episodes).most_common(10)
 
-    print('Shortest: {}'.format(shortest.title))
-    print('Longest: {}'.format(longest.title))
-    print('Most titles: {} with {}'.format(most_titles.title, len(most_titles.titles)))
-    print('Fewest titles: {} with {}'.format(fewest_titles.title, len(fewest_titles.titles)))
+    print('Shortest: {}'.format(shortest.sort))
+    print('Longest: {}'.format(longest.sort))
+    print('Most titles: {} with {}'.format(most_titles.sort, len(most_titles.titles)))
+    print('Fewest titles: {} with {}'.format(fewest_titles.sort, len(fewest_titles.titles)))
     for lang in ['swedish', 'english']:
         print('Top words in titles ({}):'.format(lang))
         top10 = get_top(episodes, lang).most_common(10)
