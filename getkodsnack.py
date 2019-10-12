@@ -198,14 +198,20 @@ STOP_WORDS = list(
             itertools.chain(SWEDISH_STOP_WORDS, ['kodsnack', 'ju'])
         )
 
+
+def title_words_from_episodes(episodes):
+    titles = itertools.chain.from_iterable(itertools.chain([e.title], e.titles) for e in episodes)
+    title_words = itertools.chain.from_iterable(re.findall(r'\w+', title.lower()) for title in titles)
+    return (w for w in title_words if not w.isdigit())
+
+
 def handle_stats(args):
     episodes = list(get_episodes())
     shortest = min(episodes, key=lambda e: len(e.title))
     longest = max(episodes, key=lambda e: len(e.title))
     most_titles = max(episodes, key=lambda e: len(e.titles))
     fewest_titles = min((e for e in episodes if len(e.titles)>0), key=lambda e: len(e.titles))
-    titles = itertools.chain.from_iterable(itertools.chain([e.title], e.titles) for e in episodes)
-    title_words = itertools.chain.from_iterable(re.findall(r'\w+', title.lower()) for title in titles)
+    title_words = title_words_from_episodes(episodes)
     top10 = collections.Counter(w for w in title_words if w not in STOP_WORDS).most_common(10)
 
     print('Shortest: {}'.format(shortest.title))
@@ -216,6 +222,15 @@ def handle_stats(args):
     for t in top10:
         print('  {} with {}'.format(t[0], t[1]))
     print()
+
+
+def handle_words(args):
+    allwords = title_words_from_episodes(get_episodes())
+    stopwords = STOP_WORDS if args.include_stopwords else []
+    words = (w for w in allwords if not w in stopwords)
+    wordlist = words if args.all else itertools.islice(words, 20)
+    for w in wordlist:
+        print(w)
 
 
 def main():
@@ -236,6 +251,11 @@ def main():
 
     sub = sub_parsers.add_parser('stats', help='')
     sub.set_defaults(func=handle_stats)
+
+    sub = sub_parsers.add_parser('words', help='')
+    sub.add_argument('--stopwords', dest='include_stopwords', action='store_false', help='also include stopwords')
+    sub.add_argument('--all', action='store_true', help='print all words')
+    sub.set_defaults(func=handle_words)
 
     args = parser.parse_args()
     if args.command_name is not None:
