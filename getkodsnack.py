@@ -202,7 +202,9 @@ def handle_download(args):
     fix_id3 = args.fix_id3
     download_folder = os.path.join(os.getcwd(), 'episodes')
     os.makedirs(download_folder, exist_ok=True)
-    for episode in get_episodes():
+    all_episodes = get_episodes()
+    episodes = all_episodes if args.all else itertools.islice(all_episodes, 5)
+    for episode in episodes:
         # we should change to the same extension that the source has, someday...
         if episode.url == '':
             print('Missing download for {}'.format(episode.title))
@@ -265,6 +267,7 @@ def main():
     sub = sub_parsers.add_parser('download', help='Download episode mp3s to your computer')
     sub.add_argument('--no-download', dest='download', action='store_false', help="don't download the episodes")
     sub.add_argument('--no-fix', dest='fix_id3', action='store_false', help="don't fix the id3 tags")
+    sub.add_argument('--all', action='store_true', help='download all files')
     sub.set_defaults(func=handle_download)
 
     sub = sub_parsers.add_parser('ls', help='List all episodes')
