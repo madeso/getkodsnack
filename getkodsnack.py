@@ -200,12 +200,17 @@ def title_words_from_episodes(episodes):
 def handle_download(args):
     download_file = args.download
     fix_id3 = args.fix_id3
+    download_folder = os.path.join(os.getcwd(), 'episodes')
+    os.makedirs(download_folder, exist_ok=True)
     for episode in get_episodes():
         # we should change to the same extension that the source has, someday...
         if episode.url == '':
             print('Missing download for {}'.format(episode.title))
         else:
-            dlfile(episode.url, sanefilename(episode.title)+ ".mp3", episode.date, episode.title, episode.sort, episode.number, download_file, fix_id3)
+            ext = episode.url[episode.url.rfind('.'):]
+            filename = sanefilename(episode.title)+ext
+            localfile = os.path.join(download_folder, filename)
+            dlfile(episode.url, localfile, episode.date, episode.title, episode.sort, episode.number, download_file, fix_id3)
 
 
 def handle_ls(args):
