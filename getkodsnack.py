@@ -69,7 +69,7 @@ class Episode:
 def sanefilename(filename):
     for c in r'[]/\;,><&*:%=+@!#^()|?^':
         filename = filename.replace(c,'')
-    return filename
+    return filename.lower()
 
 
 def fix_id3_tags(localfilename, title, title_sort, date, num):
@@ -210,7 +210,7 @@ def handle_download(args):
             print('Missing download for {}'.format(episode.title))
         else:
             ext = episode.url[episode.url.rfind('.'):]
-            filename = sanefilename(episode.title)+ext
+            filename = sanefilename('kodsnack ' + episode.number + ' - '+ episode.title)+ext
             localfile = os.path.join(download_folder, filename)
             dlfile(episode.url, localfile, episode.date, episode.title, episode.sort, episode.number, download_file, fix_id3)
 
