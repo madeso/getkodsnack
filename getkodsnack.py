@@ -85,12 +85,12 @@ def request_url(url, name):
 
 
 class Episode:
-    def __init__(self, url, date, title, num):
+    def __init__(self, url, date, title, num, titles):
         self.url = url
         self.date = date
         self.title = title
         self.num = num
-        self.alt_titles = []
+        self.titles = titles
 
 
 def get_episodes():
@@ -106,16 +106,31 @@ def get_episodes():
         episode_number = -1
         episode_title = ''
         download_file = ''
+        episode_titles = []
 
         #  <h1 class="post-title">Kodsnack 74 - Resten av livet med dina handleder</h1>
         title_result = episode_soup.find('h1', class_='post-title')
         if title_result != None:
-            episode_title = title_result.string
+            episode_title = title_result.string.strip()
 
         # <span class="post-download"><a href="http://traffic.libsyn.com/kodsnack/24_oktober.mp3">Ladda ner (mp3)</a></span>
         download_result = episode_soup.find('span', class_='post-download')
         if download_result != None:
             download_file = download_result.a['href']
+
+        titles_result = episode_soup.find('h2', id='titlar')
+        if titles_result != None:
+            ul = None
+            for s in titles_result.next_siblings:
+                if s.name == 'ul':
+                    ul = s
+                    break
+            if ul != None:
+                for li in ul.find_all('li'):
+                    alt_title = li.string
+                    if alt_title != None:
+                        alt_title = alt_title.strip()
+                        episode_titles.append(alt_title)
         
         episode_number_result = re.search('[Kk]odsnack ([0-9]+)', episode_title)
         if episode_number_result == None:
@@ -123,7 +138,7 @@ def get_episodes():
             episode_parse_ok = False
             episode_number = int(episode_number_result.group(1))
 
-        yield Episode(download_file, episode_date, episode_title, episode_number)
+        yield Episode(download_file, episode_date, episode_title, episode_number, episode_titles)
 
 
 def handle_download(args):
@@ -146,7 +161,7 @@ def handle_ls(args):
 def handle_titles(args):
     for episode in get_episodes():
         print(episode.title)
-        for t in episode.alt_titles:
+        for t in episode.titles:
             print(t)
 
         print()
