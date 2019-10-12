@@ -161,19 +161,20 @@ def get_episodes():
         if download_result != None:
             download_file = download_result.a['href']
 
-        titles_result = episode_soup.find('h2', id='titlar')
-        if titles_result != None:
-            ul = None
-            for s in titles_result.next_siblings:
-                if s.name == 'ul':
-                    ul = s
-                    break
-            if ul != None:
-                for li in ul.find_all('li'):
-                    alt_title = li.string
-                    if alt_title != None:
-                        alt_title = alt_title.strip()
-                        episode_titles.append(alt_title)
+        for titles_id in ['titlar', 'titles']:
+            titles_result = episode_soup.find('h2', id=titles_id)
+            if titles_result != None:
+                ul = None
+                for s in titles_result.next_siblings:
+                    if s.name == 'ul':
+                        ul = s
+                        break
+                if ul != None:
+                    for li in ul.find_all('li'):
+                        alt_title = li.string
+                        if alt_title != None:
+                            alt_title = alt_title.strip()
+                            episode_titles.append(alt_title)
         
         episode_number_result = re.search('[Kk]odsnack ([0-9]+)', episode_title)
         if episode_number_result == None:
